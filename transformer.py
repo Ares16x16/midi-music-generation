@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config import *
 
 class SelfAttentionHead(nn.Module):
     def __init__(self, head_size, embedding_dim, seq_length):

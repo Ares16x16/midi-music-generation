@@ -53,14 +53,18 @@ class Trainer:
 # Main training function
 def main():
     # Parameters
-    csv_file = 'english_finance_news.csv'
+    csv_file = r'C:\Users\ed700\workspace\midi-music-generation\word generation\english_financial_news_v2.csv'
     max_length = 50  # Maximum length of tokens
-    batch_size = 16
+    batch_size = 800
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     # Load and preprocess the data
-    dataset = NewsDataset(csv_file, max_length)
-    train_data, val_data = train_test_split(dataset.data, test_size=0.2, random_state=42)
+    # Load the entire dataset into a DataFrame
+    full_dataset = pd.read_csv(csv_file)
+
+    # Split the dataset into training and validation sets
+    train_data, val_data = train_test_split(full_dataset, test_size=0.2, random_state=42)
+
     train_dataset = NewsDataset(train_data, max_length)
     val_dataset = NewsDataset(val_data, max_length)
 

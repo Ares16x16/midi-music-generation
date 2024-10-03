@@ -24,10 +24,10 @@ class Trainer:
             total_loss = 0
             for batch in tqdm(self.train_loader):
                 self.optimizer.zero_grad()
-                inputs, labels = batch
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                inputs = batch
+                inputs = inputs.to(self.device)
                 
-                logits, loss = self.model(inputs, targets=labels)
+                logits, loss = self.model(inputs)
                 if loss is not None:
                     total_loss += loss.item()
                     loss.backward()
@@ -42,9 +42,9 @@ class Trainer:
         total_loss = 0
         with torch.no_grad():
             for batch in self.val_loader:
-                inputs, labels = batch
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                logits, loss = self.model(inputs, targets=labels)
+                inputs = batch
+                inputs = inputs.to(self.device)
+                logits, loss = self.model(inputs)
                 if loss is not None:
                     total_loss += loss.item()
         avg_loss = total_loss / len(self.val_loader)
@@ -55,7 +55,7 @@ def main():
     # Parameters
     csv_file = r'C:\Users\ed700\workspace\midi-music-generation\word generation\english_financial_news_v2.csv'
     max_length = 50  # Maximum length of tokens
-    batch_size = 800
+    batch_size = 16
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     # Load and preprocess the data
@@ -71,6 +71,7 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
+    
     # Initialize the model
     model = Transformer(vocab_size=len(train_dataset.tokenizer) + 1, 
                               embedding_dim=32, 

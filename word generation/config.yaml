@@ -1,5 +1,5 @@
-#TEXTPATH: "TinyStoriesV2-GPT4-valid.txt"
-TEXTPATH: "test.txt"
+TEXTPATH: "TinyStoriesV2-GPT4-valid.txt"
+#TEXTPATH: "test.txt"
 TOKEN_ID_PATH: "t2i.json"
 ID_TOKEN_PATH: "i2t.json"
 SEQ_LEN: 32

@@ -15,6 +15,7 @@ TOKEN_ID_PATH = config["TOKEN_ID_PATH"]
 ID_TOKEN_PATH = config["ID_TOKEN_PATH"]
 DEVICE = config["DEVICE"]
 MODEL_DIR = config["MODEL_DIR"]
+PLOT_DIR = config["PLOT_DIR"]
 SEQ_LEN = config["SEQ_LEN"]
 BATCH_SIZE = config["BATCH_SIZE"]
 
@@ -28,18 +29,18 @@ model = Transformer(
     num_layers=config["TRANSFORMER_LAYERS"],
 )
 
-model.load_state_dict(torch.load(f"{MODEL_DIR}/init_model.pt"))
+model.load_state_dict(torch.load(f"{MODEL_DIR}/test_data_model.pt"))
 model.to(DEVICE)
 model.eval()
 
-evaluate_sample = ["Hi, my name is John."]
+evaluate_sample = ["Hi, Hello, How are "]
 
 evaluate_data = TinyStoryDataset(" ".join(evaluate_sample), token_to_id_mapping, config)
 evaluate_loader = torch.utils.data.DataLoader(
     evaluate_data, batch_size=BATCH_SIZE, shuffle=False
 )
 
-trainer = Trainer(model, None, evaluate_loader, None, DEVICE, MODEL_DIR)
+trainer = Trainer(model, None, evaluate_loader, None, DEVICE, MODEL_DIR, PLOT_DIR)
 
 results = trainer.evaluate(
     evaluate_sample, token_to_id_mapping, id_to_token_mapping, new_tokens=10

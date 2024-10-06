@@ -1,87 +1,82 @@
-import pandas as pd
+import yaml
 import torch
-from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import train_test_split
-import torch.optim as optim
-from tqdm import tqdm
-import torch.nn.functional as F
-from transformer.model import Transformer
-from transformer.data_loader import NewsDataset
+from torch.utils.data import DataLoader
+from transformer.data_loader import (
+    load_text,
+    save_mappings,
+    load_mappings,
+    format_as_escaped_json,
+    TinyStoryDataset,
+    build_vocab,
+    add_missing_words,
+)
+from transformer.trainer import Trainer
+from transformer.model import (
+    Transformer,
+)
 
-# Define the Trainer class
-class Trainer:
-    def __init__(self, model, train_loader, val_loader, device):
-        self.model = model.to(device)
-        self.train_loader = train_loader
-        self.val_loader = val_loader
-        self.device = device
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4)
-        self.epochs = 1  # Set the number of epochs
+# Load config
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
 
-    def train(self):
-        for epoch in range(self.epochs):
-            self.model.train()
-            total_loss = 0
-            for batch in tqdm(self.train_loader):
-                self.optimizer.zero_grad()
-                inputs = batch
-                inputs = inputs.to(self.device)
-                
-                logits, loss = self.model(inputs)
-                if loss is not None:
-                    total_loss += loss.item()
-                    loss.backward()
-                    self.optimizer.step()
-            
-            avg_loss = total_loss / len(self.train_loader)
-            print(f'Epoch {epoch + 1}/{self.epochs}, Loss: {avg_loss:.4f}')
-            self.validate()
+TEXTPATH = config["TEXTPATH"]
+TOKEN_ID_PATH = config["TOKEN_ID_PATH"]
+ID_TOKEN_PATH = config["ID_TOKEN_PATH"]
+SEQ_LEN = config["SEQ_LEN"]
+BATCH_SIZE = config["BATCH_SIZE"]
+EPOCHS = config["EPOCHS"]
+VOCAB_SIZE = config["VOCAB_SIZE"]
+EMBED_DIM = config["EMBED_DIM"]
+TRANSFORMER_HEADS = config["TRANSFORMER_HEADS"]
+TRANSFORMER_LAYERS = config["TRANSFORMER_LAYERS"]
+LR = config["LR"]
+DEVICE = config["DEVICE"]
+MODEL_DIR = config["MODEL_DIR"]
+PLOT_DIR = config["PLOT_DIR"]
 
-    def validate(self):
-        self.model.eval()
-        total_loss = 0
-        with torch.no_grad():
-            for batch in self.val_loader:
-                inputs = batch
-                inputs = inputs.to(self.device)
-                logits, loss = self.model(inputs)
-                if loss is not None:
-                    total_loss += loss.item()
-        avg_loss = total_loss / len(self.val_loader)
-        print(f'Validation Loss: {avg_loss:.4f}')
+# Load data
+main_text = load_text(TEXTPATH)
+train_index = int(0.9 * len(main_text.split(" ")))
+train_text = " ".join(main_text.split()[:train_index])
+valid_text = " ".join(main_text.split()[train_index:])
 
-# Main training function
-def main():
-    # Parameters
-    csv_file = r'C:\Users\ed700\workspace\midi-music-generation\word generation\english_financial_news_v2.csv'
-    max_length = 50  # Maximum length of tokens
-    batch_size = 16
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    # Load and preprocess the data
-    # Load the entire dataset into a DataFrame
-    full_dataset = pd.read_csv(csv_file)
+# Load mappings
+"""token_to_id_mapping, id_to_token_mapping = build_vocab(main_text)
+escaped_token_to_id = format_as_escaped_json(token_to_id_mapping)
+escaped_id_to_token = format_as_escaped_json(id_to_token_mapping)
+save_mappings(escaped_token_to_id, escaped_id_to_token, "t2i.json", "i2t.json")"""
+token_to_id_mapping, id_to_token_mapping = load_mappings(TOKEN_ID_PATH, ID_TOKEN_PATH)
 
-    # Split the dataset into training and validation sets
-    train_data, val_data = train_test_split(full_dataset, test_size=0.2, random_state=42)
+# Datasets and DataLoaders
+train_data = TinyStoryDataset(train_text, token_to_id_mapping, config)
+valid_data = TinyStoryDataset(valid_text, token_to_id_mapping, config)
+train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+valid_loader = DataLoader(valid_data, batch_size=BATCH_SIZE, shuffle=False)
 
-    train_dataset = NewsDataset(train_data, max_length)
-    val_dataset = NewsDataset(val_data, max_length)
+# Model and optimizer
+model = Transformer(
+    vocab_size=VOCAB_SIZE,
+    embedding_dim=EMBED_DIM,
+    seq_length=SEQ_LEN,
+    num_heads=TRANSFORMER_HEADS,
+    num_layers=TRANSFORMER_LAYERS,
+)
+model.to(DEVICE)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+# Trainer
+trainer = Trainer(
+    model, optimizer, train_loader, valid_loader, DEVICE, MODEL_DIR, PLOT_DIR
+)
+trainer.train(EPOCHS)
 
-    
-    # Initialize the model
-    model = Transformer(vocab_size=len(train_dataset.tokenizer) + 1, 
-                              embedding_dim=32, 
-                              seq_length=max_length, 
-                              num_heads=4, 
-                              num_layers=4)
+# Evaluation
+evaluate_sample = ["Hi, my name is John."]
+# add_missing_words(evaluate_sample, "t2i.json", "i2t.json")
+token_to_id_mapping, id_to_token_mapping = load_mappings("t2i.json", "i2t.json")
 
-    # Start training
-    trainer = Trainer(model, train_loader, val_loader, device)
-    trainer.train()
-
-if __name__ == "__main__":
-    main()
+results = trainer.evaluate(
+    evaluate_sample, token_to_id_mapping, id_to_token_mapping, new_tokens=10
+)
+for result in results:
+    print(result)

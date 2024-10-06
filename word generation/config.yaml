@@ -1,0 +1,15 @@
+#TEXTPATH: "TinyStoriesV2-GPT4-valid.txt"
+TEXTPATH: "test.txt"
+TOKEN_ID_PATH: "t2i.json"
+ID_TOKEN_PATH: "i2t.json"
+SEQ_LEN: 32
+BATCH_SIZE: 1024
+EPOCHS: 5
+VOCAB_SIZE: 9772
+EMBED_DIM: 768
+TRANSFORMER_HEADS: 8
+TRANSFORMER_LAYERS: 2
+LR: 0.0001
+DEVICE: "cuda"
+MODEL_DIR: "output/model"
+PLOT_DIR: "output/plot"

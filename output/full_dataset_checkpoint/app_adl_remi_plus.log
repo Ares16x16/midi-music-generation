@@ -1,0 +1,8 @@
+2024-11-13 22:21:22,887 - INFO - Loading files...
+2024-11-13 22:21:22,900 - INFO - Dataset size: 10986
+2024-11-13 22:22:51,474 - INFO - No checkpoint found at 'output/model_adl_remi_plus\checkpoint.pt'
+2024-11-13 22:22:59,787 - INFO - Intermediate checkpoint for epoch 1, step 0 saved
+2024-11-14 02:24:55,807 - INFO - Intermediate checkpoint for epoch 1, step 240912 saved
+2024-11-14 05:55:08,909 - INFO - Intermediate checkpoint for epoch 1, step 481824 saved
+2024-11-14 09:46:32,228 - INFO - Intermediate checkpoint for epoch 1, step 722736 saved
+2024-11-14 14:11:12,712 - INFO - Intermediate checkpoint for epoch 1, step 963648 saved

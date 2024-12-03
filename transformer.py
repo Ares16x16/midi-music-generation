@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SelfAttentionHead(nn.Module):
     def __init__(self, head_size, embedding_dim, seq_length):
         super(SelfAttentionHead, self).__init__()
@@ -22,13 +23,16 @@ class SelfAttentionHead(nn.Module):
         v = self.value(x)
         return weights @ v
 
+
 class MultiHeadSelfAttention(nn.Module):
     def __init__(self, num_heads, head_size, embedding_dim, seq_length):
         super(MultiHeadSelfAttention, self).__init__()
-        self.heads = nn.ModuleList([
-            SelfAttentionHead(head_size, embedding_dim, seq_length)
-            for _ in range(num_heads)
-        ])
+        self.heads = nn.ModuleList(
+            [
+                SelfAttentionHead(head_size, embedding_dim, seq_length)
+                for _ in range(num_heads)
+            ]
+        )
         self.projection = nn.Linear(num_heads * head_size, embedding_dim)
         self.dropout = nn.Dropout(0.1)
 
@@ -36,6 +40,7 @@ class MultiHeadSelfAttention(nn.Module):
         out = torch.cat([head(x) for head in self.heads], dim=-1)
         out = self.projection(out)
         return self.dropout(out)
+
 
 class FeedForwardNetwork(nn.Module):
     def __init__(self, embedding_dim):
@@ -50,11 +55,14 @@ class FeedForwardNetwork(nn.Module):
     def forward(self, x):
         return self.network(x)
 
+
 class TransformerBlock(nn.Module):
     def __init__(self, num_heads, seq_length, embedding_dim):
         super(TransformerBlock, self).__init__()
         head_size = embedding_dim // num_heads
-        self.attention = MultiHeadSelfAttention(num_heads, head_size, embedding_dim, seq_length)
+        self.attention = MultiHeadSelfAttention(
+            num_heads, head_size, embedding_dim, seq_length
+        )
         self.feed_forward = FeedForwardNetwork(embedding_dim)
         self.norm1 = nn.LayerNorm(embedding_dim)
         self.norm2 = nn.LayerNorm(embedding_dim)
@@ -64,15 +72,21 @@ class TransformerBlock(nn.Module):
         x = x + self.feed_forward(self.norm2(x))
         return x
 
-class TransformerModel(nn.Module):
-    def __init__(self, vocab_size=100, embedding_dim=32, seq_length=8, num_heads=4, num_layers=4):
-        super(TransformerModel, self).__init__()
+
+class Transformer(nn.Module):
+    def __init__(
+        self, vocab_size=100, embedding_dim=32, seq_length=8, num_heads=4, num_layers=4
+    ):
+        super(Transformer, self).__init__()
+        self.seq_length = seq_length
         self.token_embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.position_embeddings = nn.Embedding(seq_length, embedding_dim)
-        self.blocks = nn.Sequential(*[
-            TransformerBlock(num_heads, seq_length, embedding_dim)
-            for _ in range(num_layers)
-        ])
+        self.blocks = nn.Sequential(
+            *[
+                TransformerBlock(num_heads, seq_length, embedding_dim)
+                for _ in range(num_layers)
+            ]
+        )
         self.norm = nn.LayerNorm(embedding_dim)
         self.head = nn.Linear(embedding_dim, vocab_size)
 
@@ -91,11 +105,12 @@ class TransformerModel(nn.Module):
         return logits, None
 
     def generate(self, idx, max_new_tokens):
+        generated = idx
         for _ in range(max_new_tokens):
-            idx_crop = idx[:, -self.token_embeddings.num_embeddings:]
+            idx_crop = generated[:, -self.seq_length :]
             logits, _ = self.forward(idx_crop)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             idx_next = torch.multinomial(probs, num_samples=1)
-            idx = torch.cat((idx, idx_next), dim=1)
-        return idx
+            generated = torch.cat((generated, idx_next), dim=1)
+        return generated
